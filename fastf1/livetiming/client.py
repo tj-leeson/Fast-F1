@@ -74,8 +74,12 @@ class SignalRClient:
     _connection_url = 'https://livetiming.formula1.com/signalr'
 
     def __init__(self, filename: str, filemode: str = 'w', debug: bool = False,
-                 timeout: int = 60, logger: Optional = None):
+                 timeout: int = 60, logger: Optional = None
+                 message_callback: Optional[callable] = None):
 
+        #Store the callback function
+        self.message_callback = message_callback
+    
         self.headers = {'User-agent': 'BestHTTP',
                         'Accept-Encoding': 'gzip, identity',
                         'Connection': 'keep-alive, Upgrade'}
@@ -123,6 +127,13 @@ class SignalRClient:
                 )
         except Exception:
             self.logger.exception("Exception while writing message to file")
+
+        if self.message_callback is not None:
+            #Invoke the callback function withthe received message
+            try:
+                await loop.run_in_executor(pool, self.message_callback, msg)
+            excelt Exception:
+                self.logger.exception("Exception while invoking message callback")
 
     async def _on_debug(self, **data):
         if 'M' in data and len(data['M']) > 0:
